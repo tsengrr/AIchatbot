@@ -1,0 +1,99 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messenger Chatbox</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <div class="chatbox-container">
+        <div class="chatbox-header">
+            <h2>AIChatBot</h2>
+        </div>
+        <div class="chatbox-messages" id="chatBox">
+            <!-- Messages will be displayed here -->
+        </div>
+        <div class="chatbox-input">
+            <input type="text" id="userInputEditBox" placeholder="輸入訊息..." />
+            <button onclick="sendMessage()">送出</button>
+        </div>
+    </div>
+
+    <script>
+        let isChiInput = false;
+
+        document.getElementById("userInputEditBox").addEventListener("compositionstart", function(event) {
+            isChiInput = true;
+        });
+
+        document.getElementById("userInputEditBox").addEventListener("compositionend", function(event) {
+            isChiInput = false;
+        });
+
+        document.getElementById("userInputEditBox").addEventListener("keydown", function(event) {
+            if (event.key === "Enter" && !event.shiftKey && !isChiInput) {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
+
+        function sendMessage() {
+            let userInputEditBox = document.getElementById("userInputEditBox");
+            let userInputText = userInputEditBox.value.trim();
+            if (userInputText === "") return;
+            userInputEditBox.value = "";
+
+            let chatBox = document.getElementById("chatBox");
+
+            // **添加用戶訊息**
+            let userMessage = document.createElement("div");
+            userMessage.className = "message";
+            userMessage.innerHTML = `<div class="message-bubble user">${userInputText}</div>`;
+            chatBox.appendChild(userMessage);
+
+            // 滾動到最新的消息
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // 在發送請求前，先創建一個 "..." 的訊息並且開始動畫
+            let loadingMessage = document.createElement("div");
+            loadingMessage.className = "message";
+            loadingMessage.innerHTML = `<div class="message-bubble bot">.</div>`;
+            chatBox.appendChild(loadingMessage);
+
+            // 動態更新 loadingMessage 的內容
+            let dots = 1;
+            let loadingInterval = setInterval(() => {
+                dots = (dots % 3) + 1;  // 控制點數在 1 到 3 之間變化
+                loadingMessage.innerHTML = `<div class="message-bubble bot">${".".repeat(dots)}</div>`;
+            }, 500); // 每 500 毫秒更新一次
+
+            let formData = new FormData();
+            formData.append("userInputText", userInputText);
+
+            // AJAX 請求
+            fetch("/sendMessage/", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === "Success") {
+                    clearInterval(loadingInterval); // 停止更新動畫
+                    chatBox.removeChild(loadingMessage);
+
+                    // **添加ai訊息**
+                    let aiMessage = document.createElement("div");
+                    aiMessage.className = "message";
+                    aiMessage.innerHTML = `<div class="message-bubble bot">${data.ai_response}</div>`;
+                    chatBox.appendChild(aiMessage);
+
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
+            })
+            .catch(error => console.error("error: ", error));
+        }
+    </script>
+</body>
+</html>
