@@ -12,9 +12,13 @@ def chat_page(request):
 def sendMessage(request):
     if request.method == "POST":
         userInputText = request.POST.get("userInputText", "").strip()
-
+        all_conv_ids = []
+        i = 0
+        while f'conv_id_{i}' in request.POST:
+            all_conv_ids.append(request.POST.get(f'conv_id_{i}'))
+            i += 1
         if userInputText:
-            ai_response = make_ai_response(userInputText)
+            ai_response = make_ai_response(userInputText, all_conv_ids)
 
             # print(f"AI Response: {ai_response}")  # 這裡可以打印 AI 的回應
 
@@ -23,6 +27,9 @@ def sendMessage(request):
     return JsonResponse({"message": "Failed"}, status=400)
 
 # new api endpoint:
+
+# createNewConversation
+
 # getConversationHistory
 
 # /loadConversation/?convId=…

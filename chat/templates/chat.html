@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chatbox</title>
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
     <div class="sidebar">
@@ -13,6 +13,7 @@
             <h2>Chat History</h2>
         </div>
         <div class="conversation-list">
+            <span id="uuidxxx"></span>
         </div>   
     </div>
 
@@ -24,7 +25,7 @@
             <!-- Messages will be displayed here -->
         </div>
         <div class="chatbox-input">
-            <input type="text" id="userInputEditBox" placeholder="輸入訊息..." />
+            <textarea id="userInputEditBox" placeholder="輸入訊息..." ></textarea>
             <button onclick="sendMessage()">送出</button>
         </div>
     </div>
@@ -48,6 +49,10 @@
         });
 
         function sendMessage() {
+            let conv_list = document.querySelector(".conversation-list"); // 使用 querySelector 來獲取單個元素
+            console.log(conv_list);
+            let spans = conv_list.querySelectorAll('span'); // 然後在該元素內部查找所有 span
+            console.log(spans);
             let userInputEditBox = document.getElementById("userInputEditBox");
             let userInputText = userInputEditBox.value.trim();
             if (userInputText === "") return;
@@ -79,6 +84,11 @@
 
             let formData = new FormData();
             formData.append("userInputText", userInputText);
+            
+            // 將所有 div 的 id 存入 FormData
+            Array.from(spans).forEach((span, index) => {
+                formData.append(`conv_id_${index}`, span.id);  // 使用唯一的鍵名來區分每個 div id
+            });
 
             // AJAX 請求
             fetch("/sendMessage/", {
