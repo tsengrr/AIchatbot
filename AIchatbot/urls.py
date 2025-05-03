@@ -29,5 +29,6 @@ urlpatterns = [
     path('favicon.ico', favicon),
     path('', views.chat_page),
     path('admin/', admin.site.urls),
-    path('sendMessage/', views.sendMessage)
+    path('sendMessage/', views.sendMessage),
+    path('createNewConversation/', views.createNewConversation)
 ]

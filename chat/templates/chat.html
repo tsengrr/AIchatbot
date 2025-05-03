@@ -5,15 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chatbox</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 <body>
     <div class="sidebar">
         <div class="sidebar-header">
             <h2>Chat History</h2>
+            <button id="newChatBtn" class="new-chat-btn">+</button>
         </div>
         <div class="conversation-list">
-            <span id="uuidxxx"></span>
+            <span id=""></span>
+            <span id="actualUuid">hi</span>
         </div>   
     </div>
 
@@ -26,12 +28,21 @@
         </div>
         <div class="chatbox-input">
             <textarea id="userInputEditBox" placeholder="輸入訊息..." ></textarea>
-            <button onclick="sendMessage()">送出</button>
+            <div class="footer">
+                <button class="send-btn" onclick="sendMessage()">↑</button>
+            </div>
         </div>
     </div>
 
     <script>
         let isChiInput = false;
+
+        // 添加自動調整文本框高度的功能
+        const ta = document.getElementById('userInputEditBox');
+        ta.addEventListener('input', () => {
+            ta.style.height = 'auto';           // 先歸零
+            ta.style.height = ta.scrollHeight + 'px'; // 以內容高度為準
+        });
 
         document.getElementById("userInputEditBox").addEventListener("compositionstart", function(event) {
             isChiInput = true;
@@ -112,6 +123,40 @@
             })
             .catch(error => console.error("error: ", error));
         }
+
+        // 添加新對話按鈕的事件監聽器
+        document.getElementById("newChatBtn").addEventListener("click", function() {
+            // 發送請求到後端創建新對話
+            fetch("/createNewConversation/", {
+                method: "POST",
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === "Success") {
+                    
+                    // 清空聊天框
+                    document.getElementById("chatBox").innerHTML = "";
+                    // 清空輸入框
+                    document.getElementById("userInputEditBox").value = "";
+                    //更新對話 ID
+                    //document.getElementById("uuidxxx").id = data.conversation_id;
+
+                    // 抓「conversation-list」裡第一個 <span>
+                    const firstSpan = document.querySelector('.conversation-list span');
+                    if (firstSpan.id === "") {
+                        firstSpan.id = data.conversation_id;
+                    }
+
+
+                } else {
+                    console.error("Failed to create new conversation:", data.error);
+                }
+            })
+            .catch(error => {
+                console.error("Error creating new conversation:", error);
+            });
+        });
+
     </script>
 </body>
 </html>
