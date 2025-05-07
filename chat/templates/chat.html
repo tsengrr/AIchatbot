@@ -36,12 +36,7 @@
     <script>
         let isChiInput = false;
 
-        // 添加自動調整文本框高度的功能
-        const ta = document.getElementById('userInputEditBox');
-        ta.addEventListener('input', () => {
-            ta.style.height = 'auto';           // 先歸零
-            ta.style.height = ta.scrollHeight + 'px'; // 以內容高度為準
-        });
+        
 
         document.getElementById("userInputEditBox").addEventListener("compositionstart", function(event) {
             isChiInput = true;
@@ -59,10 +54,12 @@
         });
 
         function sendMessage() {
+            // 找到在哪個對話中
             let conv_list = document.querySelector(".conversation-list"); // 使用 querySelector 來獲取單個元素
             console.log(conv_list);
-            let divs = conv_list.querySelectorAll('div'); // 然後在該元素內部查找所有 span
+            let divs = conv_list.querySelectorAll('div'); // 然後在該元素內部查找所有 div
             console.log(divs);
+
             let userInputEditBox = document.getElementById("userInputEditBox");
             let userInputText = userInputEditBox.value.trim();
             if (userInputText === "") return;
