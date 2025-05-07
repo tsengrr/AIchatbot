@@ -13,9 +13,8 @@
             <h2>Chat History</h2>
             <button id="newChatBtn" class="new-chat-btn">+</button>
         </div>
-        <div class="conversation-list">
-            <span id=""></span>
-            <span id="actualUuid">hi</span>
+        <div class="conversation-list" id="conver_list">
+            <!-- conservation-item will be displayed here -->
         </div>   
     </div>
 
@@ -62,8 +61,8 @@
         function sendMessage() {
             let conv_list = document.querySelector(".conversation-list"); // 使用 querySelector 來獲取單個元素
             console.log(conv_list);
-            let spans = conv_list.querySelectorAll('span'); // 然後在該元素內部查找所有 span
-            console.log(spans);
+            let divs = conv_list.querySelectorAll('div'); // 然後在該元素內部查找所有 span
+            console.log(divs);
             let userInputEditBox = document.getElementById("userInputEditBox");
             let userInputText = userInputEditBox.value.trim();
             if (userInputText === "") return;
@@ -97,8 +96,8 @@
             formData.append("userInputText", userInputText);
             
             // 將所有 div 的 id 存入 FormData
-            Array.from(spans).forEach((span, index) => {
-                formData.append(`conv_id_${index}`, span.id);  // 使用唯一的鍵名來區分每個 div id
+            Array.from(divs).forEach((div, index) => {
+                formData.append(`conv_id_${index}`, div.id);  // 使用唯一的鍵名來區分每個 div id
             });
 
             // AJAX 請求
@@ -109,8 +108,15 @@
             .then(response => response.json())
             .then(data => {
                 if (data.message === "Success") {
-                    clearInterval(loadingInterval); // 停止更新動畫
+                    clearInterval(loadingInterval); 
                     chatBox.removeChild(loadingMessage);
+
+                    //如果是新對話
+                    if(data.need_add_new_conv) {
+                        let conv_row = document.createElement("div");
+                        conv_row.innerHTML = `<div class="conversation-item" id=data.conv_id>${userInputText}</div>`;
+                        conver_list.appendChild(conv_row);
+                    }
 
                     // **添加ai訊息**
                     let aiMessage = document.createElement("div");
@@ -142,9 +148,9 @@
                     //document.getElementById("uuidxxx").id = data.conversation_id;
 
                     // 抓「conversation-list」裡第一個 <span>
-                    const firstSpan = document.querySelector('.conversation-list span');
-                    if (firstSpan.id === "") {
-                        firstSpan.id = data.conversation_id;
+                    const firstDiv = document.querySelector('.conversation-list div');
+                    if (firstDiv.id === "") {
+                        firstDiv.id = data.conversation_id;
                     }
 
 

@@ -44,13 +44,14 @@
   
   .conversation-list {
     margin-top: 20px;
+    columns: #fff;
   }
   
   .conversation-item {
     padding: 10px;
     margin: 10px 0;
-    background-color: #fff;
-    border-radius: 4px;
+    background-color: transparent;
+    border: 1px solid #8d8686;
     cursor: pointer;
     color: #ececec;
   }
@@ -160,44 +161,9 @@
     background-color: #464343;
     color: white;
     
-   /* #userInputEditBox {
-      background-color:transparent;  
-      color: #f4f4f4;                
-      border: transparent;     
-    }
-    
-    #userInputEditBox:focus {
-      background-color: #333;     
-    } */
+      
+    } 
     
     
-  }
 
-  /* 新增聊天歷史紀錄的樣式 */
-  /* .chat-history { */
-    /* background-color: #f4f4f4;
-    width: 200px;
-    max-width: 100%;
-    border-right: 1px solid #ddd;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    padding: 10px;
-  }
-   */
-  /* .chat-history .history-item {
-    padding: 8px;
-    margin-bottom: 5px;
-    border-radius: 4px;
-    cursor: pointer;
-    background-color: #e0e0e0;
-  } */
-  
-  /* .chat-history .history-item:hover {
-    background-color: #d0d0d0;
-  }
-  
-  .chat-history .history-item.active {
-    background-color: #374148;
-    color: white;
-  } */
+ 

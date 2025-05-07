@@ -1,9 +1,8 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-import torch
-from chat.gemini import make_ai_response, create_new_conversation,startapp
-import chat.history_handler as hHandler
+from chat.gemini import make_ai_response
+from chat.history_handler import create_new_conversation,startapp, conv_id
 
 
 # 創建聊天頁面
@@ -25,9 +24,10 @@ def sendMessage(request):
 
             # print(f"AI Response: {ai_response}")  # 這裡可以打印 AI 的回應
 
-            return JsonResponse({"message": "Success", "ai_response": ai_response, "conv_id": hHandler.conv_id, "need_add_new_conv": need_add_new_conv})  # 回傳 JSON 給前端
+            return JsonResponse({"message": "Success", "ai_response": ai_response, "conv_id": conv_id, "need_add_new_conv": need_add_new_conv})  # 回傳 JSON 給前端
 
     return JsonResponse({"message": "Failed"}, status=400)
+
 
 @csrf_exempt
 def createNewConversation(request):
@@ -35,11 +35,12 @@ def createNewConversation(request):
         try:
             print("Before create_new_conversation")
             # 創建新對話
-            create_new_conversation()
-            print("After create_new_conversation, conv_id:", hHandler.conv_id)  # 調試
+            global conv_id
+            new_conv_id = create_new_conversation()
+            print("After create_new_conversation, conv_id:", new_conv_id)  # 調試
             return JsonResponse({
                 "message": "Success",
-                "conversation_id": hHandler.conv_id
+                "conversation_id": new_conv_id
             })
         except Exception as e:
             print("Exception in createNewConversation:", str(e))
