@@ -2,13 +2,20 @@
 
 ## new api endpoint:
 
-- getConversationHistory
+- load_conversation ok
 
-- /loadConversation/?convId=…
-    - need to reload convHistory and cover on hHandler.py's global convHistory
+- getConversationHistory
+    - should only load current conv to frontend
+
+# chatbox_handler.py
+- save_conv_history_to_model ok
+- get_conv_object_from_DB ok
 
 # chat.html
-- 刷新頁面時，歷史紀錄需留著 (每次對話後需自動存 / 要支援從DB裡撈歷史紀錄 / 刷新觸發startapp時要從DB loading conv_id回sidebar)
-- data.conv_id目前寫死 改成用js找到對應element 就可以element.id這樣改 (參考書籤)
-- sidebar增長改 新的會在比較上面
-- history_handler.py => chatbox_handler.py
+- 刷新頁面時，歷史紀錄需留著 
+    - 每次對話後需自動存 ok 
+    - 要支援從DB裡撈歷史紀錄 ok 
+    - 刷新觸發startapp時要從DB loading conv_id回sidebar
+
+- 點右鍵時要有刪除跟改名選項
+

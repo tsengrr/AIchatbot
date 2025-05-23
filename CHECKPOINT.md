@@ -6,4 +6,6 @@
     -  from chat.history_handler import create_new_conversation,startapp, conv_id
 
 # chat.html
-- 歷史紀錄可以往下長  
+- data.conv_id目前寫死 改成用js找到對應element 就可以element.id這樣改 (參考書籤)
+- sidebar增長改 新的會在比較上面
+

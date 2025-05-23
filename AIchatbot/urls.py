@@ -30,5 +30,8 @@ urlpatterns = [
     path('', views.chat_page),
     path('admin/', admin.site.urls),
     path('sendMessage/', views.sendMessage),
-    path('createNewConversation/', views.createNewConversation)
+    path('createNewConversation/', views.createNewConversation),
+    path("api/load_conv/<uuid:frontend_toggled_conv_id>/", views.load_conversation),
+    path("api/load_conversation_history/", views.getConversationHistory)
+    
 ]

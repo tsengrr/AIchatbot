@@ -1,7 +1,7 @@
 #https://ywctech.net/ml-ai/ollama-first-try/
 
 import ollama
-from  chat.history_handler import ChatBoxHandler
+from  chat.chatbox_handler import ChatBoxHandler
 
 def make_ai_response(userInputText, all_conv_ids):
 

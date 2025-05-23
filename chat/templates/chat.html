@@ -13,7 +13,7 @@
             <h2>Chat History</h2>
             <button id="newChatBtn" class="new-chat-btn">+</button>
         </div>
-        <div class="conversation-list" id="conver_list">
+        <div class="conversation-list" id="conv_list">
             <!-- conservation-item will be displayed here -->
         </div>   
     </div>
@@ -36,7 +36,57 @@
     <script>
         let isChiInput = false;
 
-        
+        // 頁面載入時執行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 載入歷史對話列表
+            loadConversationHistory();
+        });
+
+        // 載入歷史對話列表
+        function loadConversationHistory() {
+            fetch('/api/load_conversation_history/', {
+                method: 'GET',
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.conversations) {
+                    const convList = document.getElementById('conv_list');
+                    data.conversations.forEach(conv => {
+                        let convRow = document.createElement("div");
+                        convRow.className = "conversation-item";
+                        convRow.id = conv.id;
+                        convRow.textContent = conv.title;
+                        convList.appendChild(convRow);
+                        
+                        // 綁定點擊事件
+                        convRow.addEventListener("click", function() {
+                            fetch(`/api/load_conv/${conv.id}`, {
+                                method: "GET",
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                const chatBox = document.getElementById("chatBox");
+                                
+                                if (data.need_clear_chatbox === "true") {
+                                    chatBox.innerHTML = "";
+                                    if (data.conversation_history) {
+                                        data.conversation_history.forEach(msg => {
+                                            let messageDiv = document.createElement("div");
+                                            messageDiv.className = "message";
+                                            const bubbleClass = msg.role === 'user' ? 'user' : 'bot';
+                                            messageDiv.innerHTML = `<div class="message-bubble ${bubbleClass}">${msg.content}</div>`;
+                                            chatBox.appendChild(messageDiv);
+                                        });
+                                    }
+                                }
+                                chatBox.scrollTop = chatBox.scrollHeight;
+                            });
+                        });
+                    });
+                }
+            })
+            .catch(error => console.error("Error loading conversation history:", error));
+        }
 
         document.getElementById("userInputEditBox").addEventListener("compositionstart", function(event) {
             isChiInput = true;
@@ -107,12 +157,51 @@
                 if (data.message === "Success") {
                     clearInterval(loadingInterval); 
                     chatBox.removeChild(loadingMessage);
-
-                    //如果是新對話
-                    if(data.need_add_new_conv) {
+                    
+                    // add new conversation
+                    if (data.need_add_new_conv) {
+                        // 在 sidebar 最上方加一筆 new conversation
                         let conv_row = document.createElement("div");
-                        conv_row.innerHTML = `<div class="conversation-item" id=data.conv_id>${userInputText}</div>`;
-                        conver_list.appendChild(conv_row);
+                        conv_row.className = "conversation-item";
+                        conv_row.id = data.conv_id;
+                        conv_row.textContent = userInputText;
+                        // 使用 insertBefore 將新對話放在列表的最前面
+                        conv_list.insertBefore(conv_row, conv_list.firstChild);
+
+                        // ✅ 綁定點擊事件
+                        conv_row.addEventListener("click", function () {
+                            // 這裡可以載入對應的對話，或打 API
+                            console.log("點擊對話 id:", conv_row.id);
+
+                            // 如果要導向某個 API 頁面（GET）
+                            // location.href = `/api/load_conv/${this.id}`;
+
+                            // 或 fetch 呼叫 API（GET 範例）
+                            fetch(`/api/load_conv/${conv_row.id}`, {
+                                 method: "GET",
+                                })
+                                .then(res => res.json())
+                                .then(data => {
+                                    console.log("API 回傳資料：", data);
+                                    // 在畫面載入對話內容之類的操作
+                                    document.getElementById("chatBox").innerHTML = "";
+                                    if (data.need_clear_chatbox === "true") {
+                                        // 載入歷史對話內容
+                                        if (data.conversation_history) {
+                                            data.conversation_history.forEach(msg => {
+                                                let messageDiv = document.createElement("div");
+                                                messageDiv.className = "message";
+                                                // 根據角色設置不同的 class
+                                                const bubbleClass = msg.role === 'user' ? 'user' : 'bot';
+                                                messageDiv.innerHTML = `<div class="message-bubble ${bubbleClass}">${msg.content}</div>`;
+                                                chatBox.appendChild(messageDiv);
+                                            });
+                                        }
+                                    }
+                                    chatBox.scrollTop = chatBox.scrollHeight;
+                                });
+                        });
+
                     }
 
                     // **添加ai訊息**
@@ -141,18 +230,17 @@
                     document.getElementById("chatBox").innerHTML = "";
                     // 清空輸入框
                     document.getElementById("userInputEditBox").value = "";
-                    //更新對話 ID
-                    //document.getElementById("uuidxxx").id = data.conversation_id;
-
-                    // 抓「conversation-list」裡第一個 <span>
-                    const firstDiv = document.querySelector('.conversation-list div');
-                    if (firstDiv.id === "") {
-                        firstDiv.id = data.conversation_id;
-                    }
-
-
-                } else {
-                    console.error("Failed to create new conversation:", data.error);
+                    //如果是新對話
+                    if(data.need_add_new_conv) {
+                        let conv_row = document.createElement("div");
+                        conv_row.innerHTML = `<div class="conversation-item">${userInputText}</div>`;
+                        const firstDiv = document.querySelector('.conversation-list div');
+                        if (firstDiv.id === "") {
+                            firstDiv.id = data.conv_id;
+                        }
+                        // 在列表的頂部插入新對話，而不是附加到底部
+                        conv_list.insertBefore(conv_row, conv_list.firstChild);
+                    }console.error("Failed to create new conversation:", data.error);
                 }
             })
             .catch(error => {
