@@ -3,8 +3,8 @@ import uuid
 from django.utils import timezone
 
 class Conversation(models.Model):
-    # UUID 作為對話 ID，更安全可追蹤
-    conversation_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    # UUID 作為對話 ID 和主鍵
+    conversation_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     # 對話歷史紀錄，以 JSON 格式儲存
     conversation_history = models.JSONField()

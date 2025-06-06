@@ -27,7 +27,7 @@ def sendMessage(request):
             # print(f"AI Response: {ai_response}")  # 這裡可以打印 AI 的回應
 
             return JsonResponse({"message": "Success", "ai_response": ai_response, 
-                                 "conv_id": ChatBoxHandler.conv_id, "need_add_new_conv": need_add_new_conv})  # 回傳 JSON 給前端
+                                 "conv_id": ChatBoxHandler.conversation_object.conversation_id, "need_add_new_conv": need_add_new_conv})  # 回傳 JSON 給前端
 
     return JsonResponse({"message": "Failed"}, status=400)
 
@@ -39,8 +39,7 @@ def createNewConversation(request):
             print("Before create_new_conversation")
             # 創建新對話
             new_conv_id = ChatBoxHandler.create_new_conversation()
-            ChatBoxHandler.previous_loaded_conv_id = new_conv_id
-            print("After create_new_conversation, conv_id:", new_conv_id)  # 調試
+            print("After chatBoxHandler create_new_conversation, conv_id:", new_conv_id)  # 調試
             return JsonResponse({
                 "message": "Success",
                 "conversation_id": new_conv_id
@@ -58,14 +57,13 @@ def createNewConversation(request):
 def load_conversation(request, frontend_toggled_conv_id):
     if request.method == "GET":
         print(frontend_toggled_conv_id)
-        if ChatBoxHandler.conv_id == frontend_toggled_conv_id:
+        if ChatBoxHandler.conversation_object.conversation_id == frontend_toggled_conv_id:
             print("conv id == conv id")
             return JsonResponse({"need_clear_chatbox": "false",
                                  }, status=200)
         
-        ChatBoxHandler.conv_id = frontend_toggled_conv_id
         ChatBoxHandler.conversation_object.conversation_id = frontend_toggled_conv_id
-        
+        print(ChatBoxHandler.conversation_object.conversation_id)
         
         # ChatBoxHandler.xxx get object
         conversation = ChatBoxHandler.get_conv_object_from_DB()
@@ -74,7 +72,7 @@ def load_conversation(request, frontend_toggled_conv_id):
             return JsonResponse({"error": "Conversation not found"}, status=404)
         
         # 更新 ChatBoxHandler 的對話歷史
-        ChatBoxHandler.conversation_history = conversation.conversation_history
+        ChatBoxHandler.conversation_object.conversation_history = conversation.conversation_history
 
         # print object.conv_history as Json here
         print("conversation object: ", conversation.conversation_history)

@@ -104,7 +104,6 @@
         });
 
         function sendMessage() {
-            // 找到在哪個對話中
             let conv_list = document.querySelector(".conversation-list"); // 使用 querySelector 來獲取單個元素
             console.log(conv_list);
             let divs = conv_list.querySelectorAll('div'); // 然後在該元素內部查找所有 div
@@ -169,6 +168,7 @@
                         conv_list.insertBefore(conv_row, conv_list.firstChild);
 
                         // ✅ 綁定點擊事件
+                        /*
                         conv_row.addEventListener("click", function () {
                             // 這裡可以載入對應的對話，或打 API
                             console.log("點擊對話 id:", conv_row.id);
@@ -180,27 +180,28 @@
                             fetch(`/api/load_conv/${conv_row.id}`, {
                                  method: "GET",
                                 })
-                                .then(res => res.json())
-                                .then(data => {
-                                    console.log("API 回傳資料：", data);
-                                    // 在畫面載入對話內容之類的操作
-                                    document.getElementById("chatBox").innerHTML = "";
-                                    if (data.need_clear_chatbox === "true") {
-                                        // 載入歷史對話內容
-                                        if (data.conversation_history) {
-                                            data.conversation_history.forEach(msg => {
-                                                let messageDiv = document.createElement("div");
-                                                messageDiv.className = "message";
-                                                // 根據角色設置不同的 class
-                                                const bubbleClass = msg.role === 'user' ? 'user' : 'bot';
-                                                messageDiv.innerHTML = `<div class="message-bubble ${bubbleClass}">${msg.content}</div>`;
-                                                chatBox.appendChild(messageDiv);
-                                            });
-                                        }
+                            .then(res => res.json())
+                            .then(data => {
+                                console.log("API 回傳資料：", data);
+                                在畫面載入對話內容之類的操作
+                                document.getElementById("chatBox").innerHTML = "";
+                                if (data.need_clear_chatbox === "true") {
+                                    載入歷史對話內容
+                                    if (data.conversation_history) {
+                                        data.conversation_history.forEach(msg => {
+                                            let messageDiv = document.createElement("div");
+                                            messageDiv.className = "message";
+                                            根據角色設置不同的 class
+                                            const bubbleClass = msg.role === 'user' ? 'user' : 'bot';
+                                            messageDiv.innerHTML = `<div class="message-bubble ${bubbleClass}">${msg.content}</div>`;
+                                            chatBox.appendChild(messageDiv);
+                                        });
                                     }
-                                    chatBox.scrollTop = chatBox.scrollHeight;
-                                });
+                                }
+                                chatBox.scrollTop = chatBox.scrollHeight;
+                            });
                         });
+                        */
 
                     }
 
@@ -225,22 +226,19 @@
             .then(response => response.json())
             .then(data => {
                 if (data.message === "Success") {
-                    
                     // 清空聊天框
                     document.getElementById("chatBox").innerHTML = "";
                     // 清空輸入框
                     document.getElementById("userInputEditBox").value = "";
                     //如果是新對話
-                    if(data.need_add_new_conv) {
-                        let conv_row = document.createElement("div");
-                        conv_row.innerHTML = `<div class="conversation-item">${userInputText}</div>`;
-                        const firstDiv = document.querySelector('.conversation-list div');
-                        if (firstDiv.id === "") {
-                            firstDiv.id = data.conv_id;
-                        }
-                        // 在列表的頂部插入新對話，而不是附加到底部
-                        conv_list.insertBefore(conv_row, conv_list.firstChild);
-                    }console.error("Failed to create new conversation:", data.error);
+                    // let conv_row = document.createElement("div");
+                    // conv_row.innerHTML = `<div class="conversation-item">${userInputText}</div>`;
+                    // const firstDiv = document.querySelector('.conversation-list div');
+                    // if (firstDiv.id === "") {
+                    //     firstDiv.id = data.conv_id;
+                    // }
+                    // // 在列表的頂部插入新對話，而不是附加到底部
+                    // conv_list.insertBefore(conv_row, conv_list.firstChild);
                 }
             })
             .catch(error => {
