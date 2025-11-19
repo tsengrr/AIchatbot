@@ -13,7 +13,9 @@ class ChatBoxHandler:
     def create_new_conversation(cls):
         if cls._started == 0 :
             print("is START_APP state")
-            
+
+            cls.delete_null_conv()
+
             cls.create_conv_object()
             print("create new conv object, convid: ", cls.conversation_object.conversation_id)
             cls._started = 1
@@ -44,25 +46,17 @@ class ChatBoxHandler:
             except Exception as e:
                 print(f"Error saving conversation: {str(e)}")
                 # 如果保存失敗，嘗試重新載入並更新
-                try:
-                    existing_conv = Conversation.objects.get(conversation_id=cls.conversation_object.conversation_id)
-                    existing_conv.conversation_history = cls.conversation_object.conversation_history
-                    existing_conv.save()
-                    cls.conversation_object = existing_conv
-                    print("Successfully updated existing conversation")
-                except Exception as e2:
-                    print(f"Failed to update existing conversation: {str(e2)}")
         else:
             print("No conversation object to save")
 
     @classmethod
-    def get_conv_object_from_DB(cls):
+    def get_conv_object_from_DB(cls, conv_id):
         # get Conversation object from DB
         if cls.conversation_object is None or cls.conversation_object.conversation_id is None:
             print("no conversation object or conversation_id")
             return None
         try:
-            conversation = Conversation.objects.get(conversation_id=cls.conversation_object.conversation_id)
+            conversation = Conversation.objects.get(conversation_id=conv_id)
             print("get conversation object from DB")
             return conversation
         except Conversation.DoesNotExist:
@@ -73,6 +67,11 @@ class ChatBoxHandler:
     def create_conv_object(cls):
         # 創建新的對話記錄，初始化為空的對話歷史
         conversation = Conversation.objects.create(conversation_history=[])
-        cls.conversation_object = conversation
         print(f"Created new conversation object with ID: {conversation.conversation_id}")
-    
+        cls.conversation_object = conversation
+        print(f"chatBox handler's unique conv object has updated")
+
+    @classmethod
+    def delete_null_conv(cls):
+        conversations_to_delete = Conversation.objects.filter(conversation_history__isnull=True) | Conversation.objects.filter(conversation_history=[])
+        conversations_to_delete.delete()

@@ -7,10 +7,12 @@ class Conversation(models.Model):
     conversation_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     # 對話歷史紀錄，以 JSON 格式儲存
-    conversation_history = models.JSONField()
-
+    conversation_history = models.JSONField(null=True, blank=True)
+    
     # 可選欄位：建立時間
     created_at = models.DateTimeField(default=timezone.now)
 
+    edited_at = models.DateTimeField(auto_now=True)
+    
     def __str__(self):
         return f"Conversation {self.conversation_id}"
