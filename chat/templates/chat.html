@@ -76,8 +76,10 @@
         });
 
         function sendMessage() {
-            const conv_list = document.querySelector(".conversation-list"); // 使用 querySelector 來獲取單個元素
-            const divs = conv_list.querySelectorAll('div'); // 然後在該元素內部查找所有 div
+            let conv_list = document.querySelector(".conversation-list"); // 使用 querySelector 來獲取單個元素
+            console.log(conv_list);
+            let divs = conv_list.querySelectorAll('div'); // 然後在該元素內部查找所有 div
+            console.log(divs);
 
             let userInputEditBox = document.getElementById("userInputEditBox");
             let userInputText = userInputEditBox.value.trim();
@@ -95,14 +97,18 @@
             // 滾動到最新的消息
             chatBox.scrollTop = chatBox.scrollHeight;
 
-            // 預先建立 ai 訊息容器，之後串流更新
-            let aiMessage = document.createElement("div");
-            aiMessage.className = "message";
-            const aiBubble = document.createElement("div");
-            aiBubble.className = "message-bubble bot";
-            aiBubble.textContent = "...";
-            aiMessage.appendChild(aiBubble);
-            chatBox.appendChild(aiMessage);
+            // 在發送請求前，先創建一個 "..." 的訊息並且開始動畫
+            let loadingMessage = document.createElement("div");
+            loadingMessage.className = "message";
+            loadingMessage.innerHTML = `<div class="message-bubble bot">.</div>`;
+            chatBox.appendChild(loadingMessage);
+
+            // 動態更新 loadingMessage 的內容
+            let dots = 1;
+            let loadingInterval = setInterval(() => {
+                dots = (dots % 3) + 1;  // 控制點數在 1 到 3 之間變化
+                loadingMessage.innerHTML = `<div class="message-bubble bot">${".".repeat(dots)}</div>`;
+            }, 500); // 每 500 毫秒更新一次
 
             let formData = new FormData();
             formData.append("userInputText", userInputText);
@@ -112,79 +118,52 @@
                 formData.append(`conv_id_${index}`, div.id);  // 使用唯一的鍵名來區分每個 div id
             });
 
-            // 串流請求
-            fetch("/sendMessageStream/", {
+            // AJAX 請求
+            fetch("/sendMessage/", {
                 method: "POST",
                 body: formData
             })
-            .then(async response => {
-                if (!response.body) {
-                    aiBubble.textContent = "串流失敗：無回應內容";
-                    return;
-                }
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === "Success") {
+                    clearInterval(loadingInterval); 
+                    chatBox.removeChild(loadingMessage);
+                    let firstItem = document.querySelector(".conversation-list").firstElementChild;
 
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let buffer = "";
-                let aiText = "";
-                let metaHandled = false;
+                    // if first row is current row, not need to add new row or remove any exist row
+                    if (firstItem == null || firstItem.id != data.conv_id){
+                        rowTitle = userInputText;
 
-                while (true) {
-                    const { value, done } = await reader.read();
-                    if (done) break;
-                    buffer += decoder.decode(value, { stream: true });
-
-                    // 逐行處理 JSON event
-                    let newlineIndex;
-                    while ((newlineIndex = buffer.indexOf("\n")) >= 0) {
-                        const line = buffer.slice(0, newlineIndex).trim();
-                        buffer = buffer.slice(newlineIndex + 1);
-                        if (!line) continue;
-                        try {
-                            const event = JSON.parse(line);
-                            if (event.event === "meta" && !metaHandled) {
-                                metaHandled = true;
-                                const convId = event.conv_id;
-                                const needNewRow = event.is_curr_conv_id_not_in_side_bar;
-                                let firstItem = document.querySelector(".conversation-list").firstElementChild;
-
-                                if (firstItem == null || firstItem.id !== convId) {
-                                    let rowTitle = userInputText;
-                                    if (needNewRow) {
-                                        // 新對話，直接用問句當標題
-                                        console.log("new conv id:", convId);
-                                    } else {
-                                        // 舊對話重聊，移到最上面
-                                        let oldChat = document.querySelector(`.conversation-item[id="${convId}"]`);
-                                        if (oldChat) {
-                                            const titleContainer = oldChat.querySelector('.conversation-title');
-                                            if (titleContainer) {
-                                                rowTitle = titleContainer.textContent;
-                                            }
-                                            oldChat.remove();
-                                        }
-                                    }
-                                    addNewConversationRowInSideBar(convId, rowTitle);
+                        if (data.is_curr_conv_id_not_in_side_bar) {
+                            // first message after create new conversation, should add one row
+                            console.log("data.conv_id:", data.conv_id);
+                            
+                        }else{
+                            // old chat re-chat, should move it to newest
+                            let oldChat = document.querySelector(`.conversation-item[id="${data.conv_id}"]`);
+                            let rowTitle = userInputText;
+                            if (oldChat) {
+                                const titleContainer = oldChat.querySelector('.conversation-title');
+                                if (titleContainer) {
+                                    rowTitle = titleContainer.textContent;
                                 }
-                            } else if (event.event === "delta") {
-                                aiText += event.token;
-                                aiBubble.textContent = aiText;
-                                chatBox.scrollTop = chatBox.scrollHeight;
-                            } else if (event.event === "error") {
-                                aiBubble.textContent = `錯誤：${event.message || '未知錯誤'}`;
-                            }
-                        } catch (err) {
-                            console.error("parse stream error:", err, line);
+                                oldChat.remove();
+                            }                        
                         }
+                        addNewConversationRowInSideBar(data.conv_id, rowTitle);
+
                     }
+
+                    // **添加ai訊息**
+                    let aiMessage = document.createElement("div");
+                    aiMessage.className = "message";
+                    aiMessage.innerHTML = `<div class="message-bubble bot">${data.ai_response}</div>`;
+                    chatBox.appendChild(aiMessage);
+
+                    chatBox.scrollTop = chatBox.scrollHeight;
                 }
-                aiBubble.textContent = aiText || aiBubble.textContent;
-                chatBox.scrollTop = chatBox.scrollHeight;
             })
-            .catch(error => {
-                console.error("error: ", error);
-                aiBubble.textContent = "串流失敗：" + error;
-            });
+            .catch(error => console.error("error: ", error));
         }
 
         // 添加新對話按鈕的事件監聽器
