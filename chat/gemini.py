@@ -1,12 +1,25 @@
 #https://ywctech.net/ml-ai/ollama-first-try/
 
-import ollama
+from ollama import Client
 from chat.chatbox_handler import ChatBoxHandler
 
 # Keep the prompt light when talking to the model so it can start responding faster.
 MAX_HISTORY_MESSAGES = 6  # send only the most recent messages
 MAX_RESPONSE_TOKENS = 256  # cap how many tokens the model generates
 
+REMOTE_HOST = 'https://api-gateway.netdb.csie.ncku.edu.tw/' 
+
+# 助教提供的 API Key
+API_KEY = 'cea8594e11260a6f67c47d93f15b778aef6c408f00b700fac02a72a7aa79f9cb'
+
+# 初始化 Client
+# 注意：headers 的 key (如 'Authorization' 或 'x-api-key') 需確認助教的規定
+# 這裡假設是常見的 Authorization header
+client = Client(
+    host=REMOTE_HOST,
+    headers={'Authorization': f'Bearer {API_KEY}'} 
+    # 如果助教說 Header 是 'x-api-key'，請改成: headers={'x-api-key': API_KEY}
+)
 
 def make_ai_response(userInputText, all_conv_ids):
 
@@ -33,8 +46,8 @@ You think everything about the user is sub-par and kind of sad. You are somewhat
         limited_history = ChatBoxHandler.conversation_object.conversation_history[-MAX_HISTORY_MESSAGES:]
         messages_with_system_prompt.extend(limited_history)
 
-        response = ollama.chat(
-            model='gemma3',
+        response = client.chat(
+            model='gemma3:4b',  # 注意：請確認遠端伺服器是否支援 gemma3，若不支援可能需改為 'llama3' 或 'taide' 等
             messages=messages_with_system_prompt,
             options={"num_predict": MAX_RESPONSE_TOKENS}
         )
@@ -60,4 +73,4 @@ You think everything about the user is sub-par and kind of sad. You are somewhat
 
     except Exception as e:
         print(f"Ollama API 發生錯誤：{e}")
-        return None
+        return None, False
