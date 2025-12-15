@@ -43,7 +43,7 @@ You think everything about the user is sub-par and kind of sad. You are somewhat
         messages_with_system_prompt.append({"role": "system", "content": system_prompt})
         
         # 添加實際的對話歷史，只取最近幾則以減少上下文長度
-        limited_history = ChatBoxHandler.conversation_object.conversation_history[-MAX_HISTORY_MESSAGES:]
+        limited_history = ChatBoxHandler.conversation_object.conversation_history[:]
         messages_with_system_prompt.extend(limited_history)
 
         response = client.chat(
