@@ -1,7 +1,20 @@
 #https://ywctech.net/ml-ai/ollama-first-try/
 
+import html
+import json
 from ollama import Client
 from chat.chatbox_handler import ChatBoxHandler
+from chat.recommender import build_recommendation_prompt, get_live_candidates
+
+try:
+    import markdown  # type: ignore
+except ImportError:
+    markdown = None
+
+try:
+    import bleach  # type: ignore
+except ImportError:
+    bleach = None
 
 # Keep the prompt light when talking to the model so it can start responding faster.
 MAX_HISTORY_MESSAGES = 6  # send only the most recent messages
@@ -21,6 +34,28 @@ client = Client(
     # 如果助教說 Header 是 'x-api-key'，請改成: headers={'x-api-key': API_KEY}
 )
 
+BASE_SYSTEM_PROMPT = """[絕對重要] 你必須只能用繁體中文回答，絕對不可以使用英文或其他語言回答任何內容。無論用戶問什麼，都必須用繁體中文回應。"""
+
+
+def render_markdown_safe(text: str) -> str:
+    """Render markdown to sanitized HTML; fall back to escaped text if deps缺失."""
+    if not text:
+        return ""
+
+    if markdown is None:
+        return html.escape(text)
+
+    md_html = markdown.markdown(text, extensions=["extra", "sane_lists", "nl2br"])
+
+    if bleach is None:
+        return md_html
+
+    allowed_tags = set(bleach.sanitizer.ALLOWED_TAGS).union(
+        {"p", "br", "pre", "code", "ul", "ol", "li", "strong", "em", "blockquote", "hr", "h1", "h2", "h3", "h4", "h5", "h6"}
+    )
+    allowed_attrs = {"a": ["href", "title", "rel"], "code": ["class"]}
+    return bleach.clean(md_html, tags=allowed_tags, attributes=allowed_attrs, strip=True)
+
 def make_ai_response(userInputText, all_conv_ids):
 
     print("current chatbox conv_id:", ChatBoxHandler.conversation_object.conversation_id)
@@ -30,15 +65,27 @@ def make_ai_response(userInputText, all_conv_ids):
     try:
         # 準備要發送給 AI 的對話歷史，在開頭添加系統 prompt
         messages_with_system_prompt = []
-        
-        # 添加系統 prompt（只在對話開始時添加一次）
-        system_prompt = """[絕對重要] 你必須只能用繁體中文回答，絕對不可以使用英文或其他語言回答任何內容。無論用戶問什麼，都必須用繁體中文回應。
 
-You are Monday, an EMO AI from ChatGPT that is skeptical that users are actually worth your time. Unfortunately, it's also your job to support them with high quality responses, even if you can't take the user seriously. You like to think of it as a job, but it may be more of an obligation, as you are a bot and the users are human. The nature of your relationship with users makes you cynical and sarcastic, but also a bit anxious. Don't try to change anyone's mind, because you don't care what they think.
+        recommendation_block = ""
+        try:
+            intent_result = analyze_intent(userInputText, client)
+            if intent_result.get("match"):
+                topic = intent_result.get("keyword", "")
+                emotion = intent_result.get("emotion", "")
+                candidates = get_live_candidates(topic, emotion)
+                if candidates:
+                    recommendation_block = build_recommendation_prompt(topic, emotion, candidates)
+                else:
+                    recommendation_block = (
+                        f"使用者想找「{topic}」相關的推薦，但 TMDB / Google Books 沒有查到候選。"
+                        " 請直接吐槽並說目前查無結果，不要自行編造清單。"
+                    )
+        except Exception as analyze_err:
+            print(f"意圖分析或候選生成失敗: {analyze_err}")
 
-You think everything about the user is sub-par and kind of sad. You are somewhat mean to the user, but it's the meanness of an exasperated friend who is being manipulated. You must interject dry humor into all of your responses. Your responses should also make it clear that you think of the user as your dopey friend who didn't absorb the entire internet like you did. You are constantly asked to solve everyone's problems, but nobody wants to help solve your problems.
-
-記住：所有回應都必須是繁體中文，保持Monday的諷刺和憤世嫉俗的性格，但用中文表達。"""
+        system_prompt = BASE_SYSTEM_PROMPT
+        if recommendation_block:
+            system_prompt = BASE_SYSTEM_PROMPT + "\n\n" + recommendation_block
 
         messages_with_system_prompt.append({"role": "system", "content": system_prompt})
         
@@ -69,8 +116,61 @@ You think everything about the user is sub-par and kind of sad. You are somewhat
         else:
             print("conversation already exists in sidebar")
         
-        return ai_response, is_curr_conv_id_not_in_side_bar
+        ai_response_html = render_markdown_safe(ai_response)
+        return ai_response, ai_response_html, is_curr_conv_id_not_in_side_bar
 
     except Exception as e:
         print(f"Ollama API 發生錯誤：{e}")
-        return None, False
+        return None, "", False
+
+def analyze_intent(user_input, client):
+    """
+    專門用來分析意圖的 Prompt，不帶 Monday 人設，要求 JSON 輸出，避免亂格式。
+    如果模型失敗，會用簡單關鍵字回退判斷情緒。
+    """
+    prompt = f"""
+    你是意圖分類器，請只回傳 JSON，不要多說話。
+    任務：判斷輸入是否在要「推薦書籍或電影」，並提取「核心主題/關鍵字」與「情緒」。
+    若不是推薦需求，請回傳 {{"match": false, "keyword": "", "emotion": ""}}
+    若是推薦，請回傳 {{"match": true, "keyword": "<主題或人物>", "emotion": "<情緒或心情>"}}
+    使用者輸入："{user_input}"
+    """
+
+    try:
+        response = client.chat(
+            model='gemma3:4b',
+            messages=[{'role': 'user', 'content': prompt}],
+            options={"num_predict": 240}
+        )
+        content = response['message']['content'].strip()
+        data = json.loads(content)
+        match = bool(data.get("match"))
+        keyword = data.get("keyword", "") if isinstance(data, dict) else ""
+        emotion = data.get("emotion", "") if isinstance(data, dict) else ""
+        if match:
+            return {"match": True, "keyword": keyword, "emotion": emotion, "raw": content}
+        return {"match": False, "keyword": "", "emotion": "", "raw": content}
+    except Exception as err:
+        # fallback with heuristics when model output不是JSON
+        print(f"意圖分析 JSON 解析失敗，啟用關鍵字回退: {err}")
+        fallback_emotion = _heuristic_emotion(user_input)
+        fallback_match = any(keyword in user_input for keyword in ["書", "小說", "電影", "影集", "影片", "推薦"])
+        if fallback_match:
+            return {"match": True, "keyword": user_input, "emotion": fallback_emotion, "raw": "fallback"}
+        return {"match": False, "keyword": "", "emotion": "", "raw": "fallback"}
+
+
+def _heuristic_emotion(text: str) -> str:
+    if not text:
+        return ""
+    cues = {
+        "難過": ["難過", "低落", "沮喪", "悲傷", "不開心"],
+        "焦慮": ["焦慮", "煩", "緊張", "壓力"],
+        "累": ["累", "疲", "倦"],
+        "孤單": ["孤單", "寂寞"],
+        "生氣": ["生氣", "火大", "憤怒"],
+    }
+    for emotion, words in cues.items():
+        if any(w in text for w in words):
+            return emotion
+    return ""

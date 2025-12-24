@@ -1,7 +1,8 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from chat.gemini import make_ai_response
+from django.utils.html import escape
+from chat.gemini import make_ai_response, render_markdown_safe
 from chat.chatbox_handler import ChatBoxHandler
 from chat.models import Conversation
 import logging
@@ -40,7 +41,7 @@ def sendMessage(request):
         curr_conv_id = ChatBoxHandler.conversation_object.conversation_id
         
         if userInputText:
-            ai_response, is_curr_conv_id_not_in_side_bar = make_ai_response(userInputText, all_conv_ids)
+            ai_response, ai_response_html, is_curr_conv_id_not_in_side_bar = make_ai_response(userInputText, all_conv_ids)
 
             # if user change the chatBox (will change curr conv id) when ai rendering
             # we just drop the user input and ai output for old conv id
@@ -50,7 +51,7 @@ def sendMessage(request):
             #logger.debug("AI Response: %s", ai_response)
             print(f"AI Response: {ai_response}")  # 這裡可以打印 AI 的回應
 
-            return JsonResponse({"message": "Success", "ai_response": ai_response, 
+            return JsonResponse({"message": "Success", "ai_response": ai_response_html, "ai_response_text": ai_response,
                                  "conv_id": ChatBoxHandler.conversation_object.conversation_id, "is_curr_conv_id_not_in_side_bar": is_curr_conv_id_not_in_side_bar})  # 回傳 JSON 給前端
 
     return JsonResponse({"message": "Failed"}, status=400)
@@ -113,8 +114,16 @@ def load_conversation(request, frontend_toggled_conv_id):
         #logger.debug("conversation history %s", conversation.conversation_history)
         print("conversation history: ", conversation.conversation_history)
 
+        history = conversation.conversation_history or []
+        safe_history = []
+        for msg in history:
+            role = msg.get("role")
+            content = msg.get("content", "")
+            display_content = render_markdown_safe(content) if role == "assistant" else escape(content)
+            safe_history.append({"role": role, "content": display_content})
+
         return JsonResponse({"need_clear_chatbox": "true",
-                             "conversation_history": conversation.conversation_history,
+                             "conversation_history": safe_history,
                              }, status=200)
     
     return JsonResponse({"message": "Failed"}, status=400)
@@ -136,7 +145,7 @@ def loadAllConversationToSideBar(request):
                 if conv.conversation_history:  # 只處理有對話歷史的對話
                     conversation_list.append({
                         'id': conv.conversation_id,
-                        'title': conv.conversation_history[0]['content'],
+                        'title': escape(conv.conversation_history[0]['content']),
                         'edited_at': conv.edited_at.strftime('%Y-%m-%d %H:%M:%S')
                     })
             

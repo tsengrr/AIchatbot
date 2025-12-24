@@ -7,6 +7,7 @@ Django 驅動的繁體中文聊天服務，預設走遠端 Ollama 相容端點�
 - 側邊欄切換：顯示對話標題與時間，點擊即可載入歷史；舊對話重新提問會自動移到列表頂端。
 - 流暢輸入：Enter 送出、Shift+Enter 換行，送出時會先顯示訊息並跑 `...` loading。
 - AI 回覆：`chat/gemini.py` 只送最近 6 則訊息給模型，限制回應長度 256 tokens。
+- 情緒 + 主題推薦：偵測「想了解的主題／人物」與當下情緒，向 TMDB / Google Books 抓即時候選，再讓 LLM 排序並用 Monday 口吻推薦。
 - Monday 人設：系統 prompt 強制繁中回答且帶吐槽語氣。
 - 清理空對話：啟動時會移除僅建立未對話的紀錄。
 
@@ -27,6 +28,8 @@ Django 驅動的繁體中文聊天服務，預設走遠端 Ollama 相容端點�
 - Django 5.1.x
 - `ollama` Python 套件
 - 可用的 Ollama 相容端點與模型（預設 host、API key、model 都在 `chat/gemini.py`）
+- TMDB API Key（環境變數 `TMDB_API_KEY`），Google Books 可不設但建議設定 `GOOGLE_BOOKS_API_KEY` 以避免配額限制。
+- Markdown/HTML：若要在前端看到 Markdown 渲染，請安裝 `markdown` 與 `bleach`（用來淨化輸出）。
 
 ## 安裝與啟動
 1) （可選）建立虛擬環境
@@ -41,6 +44,8 @@ Django 驅動的繁體中文聊天服務，預設走遠端 Ollama 相容端點�
 3) 設定 AI 端點  
    - 依照需求修改 `chat/gemini.py` 的 `REMOTE_HOST`、`API_KEY` 與 `model`。目前程式碼直接讀常數，若要保護金鑰，請改為讀環境變數再啟動。  
    - 若改回本機 Ollama，請先確保 `ollama serve` 正常，並已 `ollama pull gemma3:4b` 或其他模型。
+   - 設定推薦 API：匯出 `TMDB_API_KEY`（必填），`GOOGLE_BOOKS_API_KEY`（可選，無則用公開端點）。
+   - Markdown 依賴：`pip install markdown bleach`（未安裝時會自動退回純文字）。
 4) 初始化資料庫
    ```bash
    python manage.py migrate
@@ -59,6 +64,7 @@ Django 驅動的繁體中文聊天服務，預設走遠端 Ollama 相容端點�
 
 ## 自訂與調整
 - 人設與回應長度：`chat/gemini.py` 內的 `system_prompt`、`MAX_HISTORY_MESSAGES`、`MAX_RESPONSE_TOKENS`、`model`。
+- 推薦流程：`chat/recommender.py`，可調整每次抓取的數量、摘要長度或 TMDB/Google Books 查詢參數。
 - 時區與靜態檔：`AIchatbot/settings.py` 的 `TIME_ZONE`、`STATICFILES_DIRS`。
 - 對話清理：`ChatBoxHandler.delete_null_conv()` 會在啟動時移除空對話，可依需要調整。
 - 資料表：對話紀錄存於 `db.sqlite3`，模型定義在 `chat/models.py`。
