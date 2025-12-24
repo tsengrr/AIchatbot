@@ -1,75 +1,84 @@
-# AIchatbot
+# Movie/Book Recommender
 
-Django 驅動的繁體中文聊天服務，預設走遠端 Ollama 相容端點並使用 `gemma3:4b`。AI 角色套用「Monday」式的吐槽語氣。支援多對話紀錄、側邊欄切換、快速新增聊天，以及前端重新命名與刪除操作。
+>An Ollama-compatible Django web app that chats in  Chinese, supports multi-conversation history, and can recommend movies/books by live-searching TMDB + Google Books.
 
-## 功能一覽
-- 多對話歷史：每次點「+」建立新聊天室，紀錄以 SQLite 的 `Conversation` JSONField 保存。
-- 側邊欄切換：顯示對話標題與時間，點擊即可載入歷史；舊對話重新提問會自動移到列表頂端。
-- 流暢輸入：Enter 送出、Shift+Enter 換行，送出時會先顯示訊息並跑 `...` loading。
-- AI 回覆：`chat/gemini.py` 只送最近 6 則訊息給模型，限制回應長度 256 tokens。
-- 情緒 + 主題推薦：偵測「想了解的主題／人物」與當下情緒，向 TMDB / Google Books 抓即時候選，再讓 LLM 排序並用 Monday 口吻推薦。
-- Monday 人設：系統 prompt 強制繁中回答且帶吐槽語氣。
-- 清理空對話：啟動時會移除僅建立未對話的紀錄。
+## Project Description
+This project builds a **multi-session** chat interface. It limits context for speed, and adds a recommendation workflow: detect user purpose + emotion, fetch real-time candidates from TMDB/Google Books, then let the LLM rank and reply with Markdown.
 
-## 系統架構
-- 後端：Django 5.1，`chat/views.py` 提供送出訊息、新對話、載入歷史等 API；`chat/chatbox_handler.py` 管理唯一的目前對話物件與儲存流程。
-- AI 服務：`chat/gemini.py` 透過 `ollama.Client` 連到自訂 `REMOTE_HOST`，在 headers 帶 `API_KEY` 呼叫 `gemma3:4b`。
-- 前端：`chat/templates/chat.html` 搭配 `chat/static/css/styles.css`，用 fetch 串接 API，支援 hover 的三點選單（重新命名/刪除目前僅前端動作）。
+## Key Features
+* Multi-conversation history: SQLite JSONField stores conversations; sidebar lets you switch chats and continue the conversation.
+* Intent + emotion detection: lightweight classifier to decide when to enter recommendation mode and extract topic/emotion.
+* Live candidates: TMDB + Google Books fetch for recent, relevant movies/books (requires API keys).
+* Markdown rendering: server-side markdown before sending to frontend.
 
-## 主要路由 / API
-- `/`：聊天頁面。
-- `POST /sendMessage/`：送出訊息並取得 AI 回覆。
-- `POST /createNewConversation/`：建立新對話並清空聊天室。
-- `GET /api/load_conv/<uuid>/`：載入指定對話歷史。
-- `GET /api/load_all_conversation_to_sidebar/`：載入所有有內容的對話供側邊欄使用。
+## System Architecture
+* Backend: Django 5.1; APIs in `chat/views.py`; conversation lifecycle in `chat/chatbox_handler.py`.
+* LLM client: `chat/gemini.py` calls remote Ollama-compatible host (`gemma3:4b` default) with recommendation block.
+* Recommender: `chat/recommender.py` handles TMDB/Google Books fetch and builds a constrained ranking prompt.
+* Frontend: `chat/templates/chat.html` + `chat/static/css/styles.css`; fetch-based chat, sidebar switching, Markdown-safe display.
 
-## 環境需求
-- Python 3.11+、pip
-- Django 5.1.x
-- `ollama` Python 套件
-- 可用的 Ollama 相容端點與模型（預設 host、API key、model 都在 `chat/gemini.py`）
-- TMDB API Key（環境變數 `TMDB_API_KEY`），Google Books 可不設但建議設定 `GOOGLE_BOOKS_API_KEY` 以避免配額限制。
-- Markdown/HTML：若要在前端看到 Markdown 渲染，請安裝 `markdown` 與 `bleach`（用來淨化輸出）。
+## How to Run
+### Prerequisites
+* Python 3.11+
+* An Ollama-compatible endpoint + model (default `gemma3:4b`)
+* TMDB API Key (required), Google Books API Key (optional but recommended)
 
-## 安裝與啟動
-1) （可選）建立虛擬環境
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # Windows 用 .venv\\Scripts\\activate
+### Installation
+1. Clone the repository:
+   ```text
+   git clone <this-repo>
+   cd AIchatbot
    ```
-2) 安裝依賴
-   ```bash
-   pip install "django>=5.1,<6" ollama
+2. Install dependencies:
+   ```text
+   pip install django "ollama" markdown requests
    ```
-3) 設定 AI 端點  
-   - 依照需求修改 `chat/gemini.py` 的 `REMOTE_HOST`、`API_KEY` 與 `model`。目前程式碼直接讀常數，若要保護金鑰，請改為讀環境變數再啟動。  
-   - 若改回本機 Ollama，請先確保 `ollama serve` 正常，並已 `ollama pull gemma3:4b` 或其他模型。
-   - 設定推薦 API：匯出 `TMDB_API_KEY`（必填），`GOOGLE_BOOKS_API_KEY`（可選，無則用公開端點）。
-   - Markdown 依賴：`pip install markdown bleach`（未安裝時會自動退回純文字）。
-4) 初始化資料庫
-   ```bash
+3. Set up API keys (example for bash/zsh):
+   ```text
+   export TMDB_API_KEY="your_tmdb_key"
+   export GOOGLE_BOOKS_API_KEY="your_gbooks_key"  # optional
+   ```
+4. Configure LLM endpoint (if needed): edit `chat/gemini.py` `REMOTE_HOST` / `API_KEY` / model.
+5. Initialize DB:
+   ```text
    python manage.py migrate
    ```
-5) 啟動開發伺服器
-   ```bash
+6. Run the server:
+   ```text
    python manage.py runserver
    ```
-6) 開啟 `http://127.0.0.1:8000/` 開始聊天。
+7. Open your browser:
+   ```text
+   http://127.0.0.1:8000/
+   ```
 
-## 使用方式
-- Enter 送出、Shift+Enter 換行；送出會即時顯示並開始 loading。
-- 左側「+」新增對話，舊對話重聊會被移到列表頂端；列表第一行即目前對話。
-- 三點選單可改名/刪除列（僅前端狀態，未寫回資料庫）。
-- 系統僅送最近 6 則訊息給模型，回應長度上限 256 tokens。
+## Project Structure
+```text
+AIchatbot/
+│
+├── chat/                    # App code
+│   ├── gemini.py            # LLM client, Monday prompt, intent detection, recommender hook
+│   ├── recommender.py       # TMDB/Google Books fetch + ranking prompt builder
+│   ├── chatbox_handler.py   # Conversation lifecycle (create/save/load)
+│   ├── views.py             # Django views/APIs for chat flows
+|   ├── models.py             # build the Conversation DB to store conversation history
+│   ├── templates/chat.html  # Frontend page
+│   └── static/css/styles.css# Styling
+│
+├── AIchatbot/settings.py    # Django settings (LANG zh-hant, TZ Asia/Taipei)
+├── db.sqlite3               # SQLite DB
+├── manage.py
+└── README.md                # Docs
+```
 
-## 自訂與調整
-- 人設與回應長度：`chat/gemini.py` 內的 `system_prompt`、`MAX_HISTORY_MESSAGES`、`MAX_RESPONSE_TOKENS`、`model`。
-- 推薦流程：`chat/recommender.py`，可調整每次抓取的數量、摘要長度或 TMDB/Google Books 查詢參數。
-- 時區與靜態檔：`AIchatbot/settings.py` 的 `TIME_ZONE`、`STATICFILES_DIRS`。
-- 對話清理：`ChatBoxHandler.delete_null_conv()` 會在啟動時移除空對話，可依需要調整。
-- 資料表：對話紀錄存於 `db.sqlite3`，模型定義在 `chat/models.py`。
+### Advanced Notes
+* Context control: sends only recent messages to keep latency low.
+* Recommendation prompt: constrains the model to rank within fetched candidates; outputs Markdown bullets.
 
-## 開發提示
-- 若要新增 API 或修改儲存流程，可先讀 `chat/chatbox_handler.py` 的對話建立/保存邏輯。
-- 目前 rename/delete 僅前端效果，若要持久化，需新增後端 API 並更新資料表。
-- 待辦與已知議題見 `TODO.md`。
+## How to Use (Web UI)
+1. Enter message and send (Enter to send, Shift+Enter for newline).
+2. Click “+” to start a new conversation or reload the page
+3. sidebar lists existing chats and they are listed by the edit time, when old sidebar is chosen, it will switch at the top.
+4. If you ask for movie/book recommendations with a topic + mood, the app fetches TMDB/Google Books, lets the model rank, and replies with Markdown bullets.
+5. Conversation history is stored automatically; switching sidebar items loads past messages.
+6. user can change the sidebar's title or delete the sidebar
