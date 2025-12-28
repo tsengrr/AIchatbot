@@ -35,6 +35,7 @@ This project builds a **multi-session** chat interface. It limits context for sp
    ```
 3. Set up API keys (example for bash/zsh):
    ```text
+   export API_KEY="your_llm_key"
    export TMDB_API_KEY="your_tmdb_key"
    export GOOGLE_BOOKS_API_KEY="your_gbooks_key"  # optional
    ```
