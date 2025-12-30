@@ -33,6 +33,7 @@ def sendMessage(request):
     #logger.info("into sendMessage")
     if request.method == "POST":
         userInputText = request.POST.get("userInputText", "").strip()
+        mode = request.POST.get("mode", "general")
         all_conv_ids = []
         i = 0
         while f'conv_id_{i}' in request.POST:
@@ -41,7 +42,7 @@ def sendMessage(request):
         curr_conv_id = ChatBoxHandler.conversation_object.conversation_id
         
         if userInputText:
-            ai_response, ai_response_html, is_curr_conv_id_not_in_side_bar = make_ai_response(userInputText, all_conv_ids)
+            ai_response, ai_response_html, is_curr_conv_id_not_in_side_bar = make_ai_response(userInputText, all_conv_ids, mode)
 
             # if user change the chatBox (will change curr conv id) when ai rendering
             # we just drop the user input and ai output for old conv id
@@ -50,6 +51,7 @@ def sendMessage(request):
 
             #logger.debug("AI Response: %s", ai_response)
             print(f"AI Response: {ai_response}")  # 這裡可以打印 AI 的回應
+            print(f"Mode: {mode}")
 
             return JsonResponse({"message": "Success", "ai_response": ai_response_html, "ai_response_text": ai_response,
                                  "conv_id": ChatBoxHandler.conversation_object.conversation_id, "is_curr_conv_id_not_in_side_bar": is_curr_conv_id_not_in_side_bar})  # 回傳 JSON 給前端

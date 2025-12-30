@@ -20,13 +20,18 @@
 
     <div class="main-content">
         <div class="chatbox-header">
-            <h2>AIchatbot</h2>
+            <h2>Movie/Book Recommander</h2>
         </div>
         <div class="chatbox-messages" id="chatBox">
             <!-- Messages will be displayed here -->
         </div>
         <div class="chatbox-input">
             <textarea id="userInputEditBox" placeholder="輸入訊息..." ></textarea>
+            <select id="chatMode" class="mode-select">
+                <option value="general">綜合閒聊 (預設)</option>
+                <option value="movie">電影模式 (影評人)</option>
+                <option value="book">書籍模式 (圖書館員)</option>
+            </select>
             <div class="footer">
                 <button class="send-btn" onclick="sendMessage()">↑</button>
             </div>
@@ -83,6 +88,7 @@
 
             let userInputEditBox = document.getElementById("userInputEditBox");
             let userInputText = userInputEditBox.value.trim();
+            let mode = document.getElementById("chatMode").value;
             if (userInputText === "") return;
             userInputEditBox.value = "";
 
@@ -112,6 +118,7 @@
 
             let formData = new FormData();
             formData.append("userInputText", userInputText);
+            formData.append("mode", mode);
             
             // 將所有 div 的 id 存入 FormData
             Array.from(divs).forEach((div, index) => {

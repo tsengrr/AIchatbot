@@ -3,25 +3,26 @@
 >An Ollama-compatible Django web app that chats in  Chinese, supports multi-conversation history, and can recommend movies/books by live-searching TMDB + Google Books.
 
 ## Project Description
-This project builds a **multi-session** chat interface. It limits context for speed, and adds a recommendation workflow: detect user purpose + emotion, fetch real-time candidates from TMDB/Google Books, then let the LLM rank and reply with Markdown.
+This project builds a **multi-session** chat interface. It limits context for speed, and adds a recommendation workflow **for movie/book modes: clean user input, infer mood heuristically, fetch real-time candidates (TMDB search + discover or Google Books)**, then let the LLM rank and reply with Markdown.
 
 ## Key Features
 * Multi-conversation history: SQLite JSONField stores conversations; sidebar lets you switch chats and continue the conversation.
-* Intent + emotion detection: lightweight classifier to decide when to enter recommendation mode and extract topic/emotion.
-* Live candidates: TMDB + Google Books fetch for recent, relevant movies/books (requires API keys).
+* Mode-specific recommendation: movie/book modes skip intent analysis and use cleaned input + heuristic emotion.
+* Live candidates: TMDB search + genre discovery (movie) and Google Books queries with mood keywords (book).
 * Markdown rendering: server-side markdown before sending to frontend.
+* Mode-scoped context: conversation history is filtered **by mode** to avoid mixing personas.
 
 ## System Architecture
 * Backend: Django 5.1; APIs in `chat/views.py`; conversation lifecycle in `chat/chatbox_handler.py`.
 * LLM client: `chat/gemini.py` calls remote Ollama-compatible host (`gemma3:4b` default) with recommendation block.
-* Recommender: `chat/recommender.py` handles TMDB/Google Books fetch and builds a constrained ranking prompt.
+* Recommender: `chat/recommender.py` handles TMDB/Google Books fetch, mood mapping, and ranking prompt builder.
 * Frontend: `chat/templates/chat.html` + `chat/static/css/styles.css`; fetch-based chat, sidebar switching, Markdown-safe display.
 
 ## How to Run
 ### Prerequisites
 * Python 3.11+
 * An Ollama-compatible endpoint + model (default `gemma3:4b`)
-* TMDB API Key (required), Google Books API Key (optional but recommended)
+* TMDB API Key (required for movie recommendations), Google Books API Key (optional but recommended for book recommendations)
 
 ### Installation
 1. Clone the repository:
@@ -58,8 +59,8 @@ This project builds a **multi-session** chat interface. It limits context for sp
 AIchatbot/
 │
 ├── chat/                    # App code
-│   ├── gemini.py            # LLM client, Monday prompt, intent detection, recommender hook
-│   ├── recommender.py       # TMDB/Google Books fetch + ranking prompt builder
+│   ├── gemini.py            # LLM client, persona prompts, mode-based recommendation hook
+│   ├── recommender.py       # TMDB/Google Books fetch + mood mapping + ranking prompt builder
 │   ├── chatbox_handler.py   # Conversation lifecycle (create/save/load)
 │   ├── views.py             # Django views/APIs for chat flows
 |   ├── models.py             # build the Conversation DB to store conversation history
@@ -73,13 +74,13 @@ AIchatbot/
 ```
 
 ### Advanced Notes
-* Context control: sends only recent messages to keep latency low.
+* Context control: sends only recent messages to keep latency low; conversation history is filtered by mode.
 * Recommendation prompt: constrains the model to rank within fetched candidates; outputs Markdown bullets.
 
 ## How to Use (Web UI)
 1. Enter message and send (Enter to send, Shift+Enter for newline).
 2. Click “+” to start a new conversation or reload the page
 3. sidebar lists existing chats and they are listed by the edit time, when old sidebar is chosen, it will switch at the top.
-4. If you ask for movie/book recommendations with a topic + mood, the app fetches TMDB/Google Books, lets the model rank, and replies with Markdown bullets.
+4. In movie/book mode, the app cleans your input, infers mood, fetches candidates from TMDB/Google Books, ranks them, and replies with Markdown bullets.
 5. Conversation history is stored automatically; switching sidebar items loads past messages.
 6. user can change the sidebar's title or delete the sidebar
