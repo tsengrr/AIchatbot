@@ -1,6 +1,6 @@
 # Movie/Book Recommender
 
->An Ollama-compatible Django web app that chats in  Chinese, supports multi-conversation history, and can recommend movies/books by live-searching TMDB + Google Books.
+>An Ollama-compatible Django web app that chats in  Chinese, supports multi-conversation history, can recommend movies/books by live-searching TMDB + Google Books, can have a small movie guess game inside.
 
 ## Project Description
 This project builds a **multi-session** chat interface. It limits context for speed, and adds a recommendation workflow **for movie/book modes: clean user input, infer mood heuristically, fetch real-time candidates (TMDB search + discover or Google Books)**, then let the LLM rank and reply with Markdown.
@@ -11,10 +11,11 @@ This project builds a **multi-session** chat interface. It limits context for sp
 * Live candidates: TMDB search + genre discovery (movie) and Google Books queries with mood keywords (book).
 * Markdown rendering: server-side markdown before sending to frontend.
 * Mode-scoped context: conversation history is filtered **by mode** to avoid mixing personas.
+* In the movie mode, if user key "開始遊戲", will enter movie guess mode, if user get the corrent answer, will return back to the recommand mode
 
 ## System Architecture
 * Backend: Django 5.1; APIs in `chat/views.py`; conversation lifecycle in `chat/chatbox_handler.py`.
-* LLM client: `chat/gemini.py` calls remote Ollama-compatible host (`gemma3:4b` default) with recommendation block.
+* LLM client: `chat/gemini.py` calls remote Ollama-compatible host (`gemma3:4b` default) with recommendation block and handle movie guess game mode.
 * Recommender: `chat/recommender.py` handles TMDB/Google Books fetch, mood mapping, and ranking prompt builder.
 * Frontend: `chat/templates/chat.html` + `chat/static/css/styles.css`; fetch-based chat, sidebar switching, Markdown-safe display.
 
@@ -59,7 +60,7 @@ This project builds a **multi-session** chat interface. It limits context for sp
 AIchatbot/
 │
 ├── chat/                    # App code
-│   ├── gemini.py            # LLM client, persona prompts, mode-based recommendation hook
+│   ├── gemini.py            # LLM client, persona prompts, mode-based recommendation hook + movie guess mode
 │   ├── recommender.py       # TMDB/Google Books fetch + mood mapping + ranking prompt builder
 │   ├── chatbox_handler.py   # Conversation lifecycle (create/save/load)
 │   ├── views.py             # Django views/APIs for chat flows

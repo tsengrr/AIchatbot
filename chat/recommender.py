@@ -4,9 +4,8 @@ from typing import Dict, List
 
 import requests
 
-TMDB_API_KEY = os.getenv("TMDB_API_KEY", "")
-GOOGLE_BOOKS_API_KEY = os.getenv("GOOGLE_BOOKS_API_KEY", "")
-
+TMDB_API_KEY = "1b07138f42f31dfb5d0e9df6edb9f776"
+GOOGLE_BOOKS_API_KEY = "AIzaSyD55XGB39DD8n3ycvFp2jTgpx6kmmREKl8"
 # translate number into readable genres
 TMDB_GENRES: Dict[int, str] = {
     12: "冒險",
@@ -223,7 +222,7 @@ def fetch_google_books(topic: str, emotion: str = "", limit: int = 5) -> List[Di
 
     try:
         resp = requests.get(
-            "https://www.googleapis.com/books/v1/volumes", params=params, timeout=8
+            "https://www.googleapis.com/books/v1/volumes", params=params, timeout=4
         )
         resp.raise_for_status() 
     except Exception as exc:
@@ -249,7 +248,7 @@ def fetch_google_books(topic: str, emotion: str = "", limit: int = 5) -> List[Di
             break
     return results
 
-
+# if the command is reated to unique topic
 def _fetch_tmdb_search(topic: str, limit: int = 5) -> List[Dict[str, object]]:
     if not topic or not TMDB_API_KEY:
         return []
@@ -263,7 +262,7 @@ def _fetch_tmdb_search(topic: str, limit: int = 5) -> List[Dict[str, object]]:
 
     try:
         resp = requests.get(
-            "https://api.themoviedb.org/3/search/movie", params=params, timeout=8
+            "https://api.themoviedb.org/3/search/movie", params=params, timeout=4
         )
         resp.raise_for_status()
     except Exception as exc:
@@ -277,7 +276,7 @@ def _fetch_tmdb_search(topic: str, limit: int = 5) -> List[Dict[str, object]]:
         if len(results) >= limit:
             break
     return results
-
+# if the command is related to emotion
 def _fetch_tmdb_discover(genres: List[int], limit: int = 5) -> List[Dict[str, object]]:
     if not genres or not TMDB_API_KEY:
         return []
@@ -292,11 +291,40 @@ def _fetch_tmdb_discover(genres: List[int], limit: int = 5) -> List[Dict[str, ob
 
     try:
         resp = requests.get(
-            "https://api.themoviedb.org/3/discover/movie", params=params, timeout=8
+            "https://api.themoviedb.org/3/discover/movie", params=params, timeout=4
         )
         resp.raise_for_status()
     except Exception as exc:
         print(f"TMDB discover 查詢失敗: {exc}")
+        return []
+
+    data = resp.json()
+    results: List[Dict[str, object]] = []
+    for movie in data.get("results", []):
+        results.append(_format_tmdb_movie(movie))
+        if len(results) >= limit:
+            break
+    return results
+
+def _fetch_tmdb_trending(limit: int = 5) -> List[Dict[str, object]]:
+    """Fallback when no direct hits or emotion are provided."""
+    if not TMDB_API_KEY:
+        return []
+
+    params = {
+        "api_key": TMDB_API_KEY,
+        "page": 1,
+    }
+
+    try:
+        resp = requests.get(
+            "https://api.themoviedb.org/3/trending/movie/week",
+            params=params,
+            timeout=4,
+        )
+        resp.raise_for_status()
+    except Exception as exc:
+        print(f"TMDB trending 查詢失敗: {exc}")
         return []
 
     data = resp.json()
@@ -325,7 +353,7 @@ def fetch_tmdb_movies(topic: str, emotion: str = "", limit: int = 5) -> List[Dic
     if len(results) < limit:
         genres = _emotion_to_genres(emotion)
         if genres:
-            mood_results = _fetch_tmdb_discover(genres, limit=limit)
+            mood_results = _fetch_tmdb_discover(genres, limit=limit) 
             for item in mood_results:
                 item_id = item.get("id")
                 if item_id in seen_ids:
@@ -336,9 +364,21 @@ def fetch_tmdb_movies(topic: str, emotion: str = "", limit: int = 5) -> List[Dic
                 if len(results) >= limit:
                     break
 
+    if len(results) < limit:
+        trending_results = _fetch_tmdb_trending(limit=limit)
+        for item in trending_results:
+            item_id = item.get("id")
+            if item_id in seen_ids:
+                continue
+            results.append(item)
+            if item_id is not None:
+                seen_ids.add(item_id)
+            if len(results) >= limit:
+                break
+
     return results[:limit]
 
-def get_live_candidates(topic: str, emotion: str = "", mode: str = "general", max_total: int = 10) -> List[Dict[str, object]]:
+def get_live_candidates(topic: str, emotion: str = "", mode: str = "general", max_total: int = 5) -> List[Dict[str, object]]:
     if mode == "movie":
         return fetch_tmdb_movies(topic, emotion=emotion, limit=max_total)
     
@@ -374,6 +414,6 @@ def build_recommendation_prompt(topic: str, emotion: str, candidates: List[Dict[
         + "\n排序與輸出規則：\n"
         "1) 以主題相關度優先，情緒貼合度其次，近年與高評分加分。\n"
         "2) 回傳不超過三筆推薦。\n"
-        "3) 請用 Markdown 條列，每行格式：- [類型] **標題**- 心得。\n"
+        "3) 請用 Markdown 條列，每行格式：- [類型] **標題**- 一句理由。\n"
         "   注意：[類型] 必須與候選清單一致，電影就寫「電影」、書籍就寫「書籍」，不可改寫或猜測。\n"
     )

@@ -8,6 +8,36 @@ class ChatBoxHandler:
     #previous_loaded_conv_id = None
     _started = 0
     conversation_object = None
+    _game_states = {}
+
+    @classmethod
+    def _current_conv_key(cls, conv_id=None):
+        if conv_id is not None:
+            return str(conv_id)
+        if cls.conversation_object and cls.conversation_object.conversation_id:
+            return str(cls.conversation_object.conversation_id)
+        return None
+
+    @classmethod
+    def get_game_state(cls, conv_id=None):
+        conv_key = cls._current_conv_key(conv_id)
+        if conv_key is None:
+            return {}
+        return cls._game_states.get(conv_key, {})
+
+    @classmethod
+    def set_game_state(cls, state, conv_id=None):
+        conv_key = cls._current_conv_key(conv_id)
+        if conv_key is None:
+            return
+        cls._game_states[conv_key] = state
+
+    @classmethod
+    def clear_game_state(cls, conv_id=None):
+        conv_key = cls._current_conv_key(conv_id)
+        if conv_key is None:
+            return
+        cls._game_states.pop(conv_key, None)
 
     @classmethod
     def create_new_conversation(cls):
