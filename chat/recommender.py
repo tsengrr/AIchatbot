@@ -257,7 +257,7 @@ def _fetch_tmdb_search(topic: str, limit: int = 5) -> List[Dict[str, object]]:
         "api_key": TMDB_API_KEY,
         "query": topic,
         "include_adult": False,
-        "page": 1,
+        "page": 1, # 相關度高的
     }
 
     try:
@@ -276,6 +276,7 @@ def _fetch_tmdb_search(topic: str, limit: int = 5) -> List[Dict[str, object]]:
         if len(results) >= limit:
             break
     return results
+
 # if the command is related to emotion
 def _fetch_tmdb_discover(genres: List[int], limit: int = 5) -> List[Dict[str, object]]:
     if not genres or not TMDB_API_KEY:
@@ -378,6 +379,8 @@ def fetch_tmdb_movies(topic: str, emotion: str = "", limit: int = 5) -> List[Dic
 
     return results[:limit]
 
+
+
 def get_live_candidates(topic: str, emotion: str = "", mode: str = "general", max_total: int = 5) -> List[Dict[str, object]]:
     if mode == "movie":
         return fetch_tmdb_movies(topic, emotion=emotion, limit=max_total)
@@ -414,6 +417,5 @@ def build_recommendation_prompt(topic: str, emotion: str, candidates: List[Dict[
         + "\n排序與輸出規則：\n"
         "1) 以主題相關度優先，情緒貼合度其次，近年與高評分加分。\n"
         "2) 回傳不超過三筆推薦。\n"
-        "3) 請用 Markdown 條列，每行格式：- [類型] **標題**- 一句理由。\n"
-        "   注意：[類型] 必須與候選清單一致，電影就寫「電影」、書籍就寫「書籍」，不可改寫或猜測。\n"
+        "3) 請用 Markdown 條列，每行格式：- **標題**- 一句理由。\n"
     )

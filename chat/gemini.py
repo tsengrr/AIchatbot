@@ -154,7 +154,7 @@ def _handle_movie_guessing(user_text: str):
         if text == "結束遊戲":
             answer = state.get("answer") or "這部電影"
             ChatBoxHandler.clear_game_state()
-            return f"遊戲結束，答案就是《{answer}》,我們回到推薦模式。告訴我想看的類型或主題吧！"
+            return f"遊戲結束，答案是《{answer}》,我們回到推薦模式。告訴我想看的類型或主題吧！"
         if _is_correct_guess(text, state):
             answer = state.get("answer") or "這部電影"
             ChatBoxHandler.clear_game_state()
