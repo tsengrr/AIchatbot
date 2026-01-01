@@ -4,8 +4,8 @@ from typing import Dict, List
 
 import requests
 
-TMDB_API_KEY = "1b07138f42f31dfb5d0e9df6edb9f776"
-GOOGLE_BOOKS_API_KEY = "AIzaSyD55XGB39DD8n3ycvFp2jTgpx6kmmREKl8"
+TMDB_API_KEY = os.getenv("TMDB_API_KEY")
+GOOGLE_BOOKS_API_KEY = os.getenv("GOOGLE_BOOKS_API_KEY")
 # translate number into readable genres
 TMDB_GENRES: Dict[int, str] = {
     12: "冒險",

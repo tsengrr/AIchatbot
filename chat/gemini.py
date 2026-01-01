@@ -11,6 +11,7 @@ from chat.recommender import (
     clean_movie_query,
     get_live_candidates,
 )
+import os
 
 try:
     import markdown  # type: ignore
@@ -20,8 +21,7 @@ except ImportError:
 
 REMOTE_HOST = 'https://api-gateway.netdb.csie.ncku.edu.tw/' 
 
-API_KEY = 'cea8594e11260a6f67c47d93f15b778aef6c408f00b700fac02a72a7aa79f9cb'
-
+API_KEY = os.getenv("API_KEY");
 client = Client(
     host=REMOTE_HOST,
     headers={'Authorization': f'Bearer {API_KEY}'} 
