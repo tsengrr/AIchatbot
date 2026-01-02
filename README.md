@@ -78,6 +78,7 @@ AIchatbot/
 
 ## LLM logic
 <img src='system_logic.png' align='center' alt='system architecture'>
+
 ### Advanced Notes
 * Context control: sends only recent messages to keep latency low; conversation history is filtered by mode.
 * Recommendation prompt: constrains the model to rank within fetched candidates; outputs Markdown bullets.
