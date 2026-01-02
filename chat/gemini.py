@@ -21,7 +21,7 @@ except ImportError:
 
 REMOTE_HOST = 'https://api-gateway.netdb.csie.ncku.edu.tw/' 
 
-API_KEY = os.getenv("API_KEY");
+API_KEY = os.getenv("API_KEY")
 client = Client(
     host=REMOTE_HOST,
     headers={'Authorization': f'Bearer {API_KEY}'} 
